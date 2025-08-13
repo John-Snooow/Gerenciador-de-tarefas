@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  member
+}
+
+enum Status {
+  pending
+  in_progress
+  completed
+}
+
+enum Priority {
+  high
+  medium
+  low
+}
+
+model User {
+  id       String   @id @default(uuid())
+  name     String
+  email    String   @unique
+  password String
+  role     UserRole
+
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  TeamMember  TeamMember[]
+  Task        Task[]
+  TaskHistory TaskHistory[]
+
+  @@map("users")
+}
+
+model Team {
+  id          String @id @default(uuid())
+  name        String
+  description String
+
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  TeamMember TeamMember[]
+  Task       Task[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  teamId String @map("team_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@map("team_members")
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  status      Status   @default(pending)
+  priority    Priority
+  assignedTo  String
+  teamId      String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user        User          @relation(fields: [assignedTo], references: [id])
+  team        Team          @relation(fields: [teamId], references: [id])
+  TaskHistory TaskHistory[]
+
+  @@map("tasks")
+}
+
+model TaskHistory {
+  id        String @id @default(uuid())
+  taskId    String
+  changedBy String
+  oldStatus String
+  newStatus String
+
+  task Task @relation(fields: [taskId], references: [id])
+  user User @relation(fields: [changedBy], references: [id])
+
+  changedAt DateTime @default(now()) @map("changed_at")
+
+  @@map("task_histories")
+}
